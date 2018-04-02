@@ -13,9 +13,12 @@
 # limitations under the License.
 
 import pkg_resources
+import logging
 
 try:
     __version__ = pkg_resources.get_distribution(__name__).version
 except pkg_resources.DistributionNotFound:
     # package is not installed
     pass
+
+logging.getLogger(__name__).setLevel(logging.DEBUG)

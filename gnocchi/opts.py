@@ -80,12 +80,12 @@ _cli_options = (
     cfg.BoolOpt(
         'debug',
         short='d',
-        default=False,
+        default=True,
         help='If set to true, the logging level will be set to DEBUG.'),
     cfg.BoolOpt(
         'verbose',
         short='v',
-        default=True,
+        default=False,
         help='If set to true, the logging level will be set to INFO.'),
     cfg.StrOpt(
         "log-dir",
