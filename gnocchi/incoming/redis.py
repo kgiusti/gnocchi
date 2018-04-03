@@ -81,6 +81,7 @@ return results
             metric_id, str(self.sack_for_metric(metric_id)))
 
     def add_measures_batch(self, metrics_and_measures):
+        LOG.error("KAG: %s", metrics_and_measures)
         notified_sacks = set()
         pipe = self._client.pipeline(transaction=False)
         for metric_id, measures in six.iteritems(metrics_and_measures):
@@ -131,6 +132,7 @@ return results
 
     @contextlib.contextmanager
     def process_measure_for_metrics(self, metric_ids):
+        LOG.error("KAG: %s", metric_ids)
         measures = {}
         pipe = self._client.pipeline(transaction=False)
         for metric_id in metric_ids:
@@ -165,6 +167,7 @@ return results
                           metric_id)
                 continue
             measures[metric_id] = self._unserialize_measures(metric_id, data)
+            LOG.error("KAG: %s", measures[metric_id])
 
         yield measures
 

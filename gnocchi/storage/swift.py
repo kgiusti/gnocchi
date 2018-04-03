@@ -23,6 +23,9 @@ from gnocchi import carbonara
 from gnocchi.common import swift
 from gnocchi import storage
 from gnocchi import utils
+import daiquiri
+LOG = daiquiri.getLogger(__name__)
+
 
 swclient = swift.swclient
 swift_utils = swift.swift_utils
@@ -108,6 +111,7 @@ class SwiftStorage(storage.StorageDriver):
 
     def _create_metric(self, metric):
         # TODO(jd) A container per user in their account?
+        LOG.error("KAG: %s", metric)
         resp = {}
         self.swift.put_container(self._container_name(metric),
                                  response_dict=resp)
@@ -118,6 +122,7 @@ class SwiftStorage(storage.StorageDriver):
 
     def _store_metric_splits_unbatched(self, metric, key, aggregation, data,
                                        offset, version):
+        LOG.error("KAG: %s", metric)
         self.swift.put_object(
             self._container_name(metric),
             self._object_name(key, aggregation.method, version),
@@ -148,6 +153,7 @@ class SwiftStorage(storage.StorageDriver):
                     raise
 
     def _get_measures_unbatched(self, metric, key, aggregation, version=3):
+        LOG.error("KAG: %s", metric)
         try:
             headers, contents = self.swift.get_object(
                 self._container_name(metric), self._object_name(
@@ -159,6 +165,7 @@ class SwiftStorage(storage.StorageDriver):
         return contents
 
     def _list_split_keys(self, metric, aggregations, version=3):
+        LOG.error("KAG: %s", metric)
         container = self._container_name(metric)
         try:
             headers, files = self.swift.get_container(
@@ -198,6 +205,7 @@ class SwiftStorage(storage.StorageDriver):
 
     def _get_or_create_unaggregated_timeseries_unbatched(
             self, metric, version=3):
+        LOG.error("KAG: %s", metric)
         try:
             headers, contents = self.swift.get_object(
                 self._container_name(metric),

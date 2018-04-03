@@ -31,6 +31,10 @@ from gnocchi.rest import api
 from gnocchi import storage
 from gnocchi import utils
 
+import daiquiri
+
+LOG = daiquiri.getLogger(__name__)
+
 
 def _OperationsSubNodeSchema(v):
     return OperationsSubNodeSchema(v)
@@ -154,13 +158,17 @@ def extract_references(nodes):
 
 def get_measures_or_abort(references, operations, start,
                           stop, granularity, needed_overlap, fill):
+    LOG.error("KAG: get_measures_or_abort: start=%s stop=%s", start, stop)
+
     try:
-        return processor.get_measures(
+        poop = processor.get_measures(
             pecan.request.storage,
             references,
             operations,
             start, stop,
             granularity, needed_overlap, fill)
+        print("KAG: Measures %s", poop)
+        return poop
     except exceptions.UnAggregableTimeseries as e:
         api.abort(400, e)
     # TODO(sileht): We currently got only one metric for these exceptions but
@@ -204,6 +212,7 @@ class AggregatesController(rest.RestController):
             start, stop, granularity, needed_overlap, fill)
 
         body = api.deserialize_and_validate(self.FetchSchema)
+        LOG.error("KAG: post body %s", body)
 
         references = extract_references(body["operations"])
         if not references:
@@ -232,12 +241,15 @@ class AggregatesController(rest.RestController):
                     body["resource_type"],
                     attribute_filter=attr_filter,
                     sorts=sorts)
+                LOG.error("KAG resources %s", resources)
             except indexer.IndexerException as e:
                 api.abort(400, six.text_type(e))
             if not groupby:
-                return self._get_measures_by_name(
+                poop = self._get_measures_by_name(
                     resources, references, body["operations"], start, stop,
                     granularity, needed_overlap, fill, details=details)
+                LOG.error("KAG: measures %s", poop)
+                return poop
 
             def groupper(r):
                 return tuple((attr, r[attr]) for attr in groupby)
@@ -250,6 +262,7 @@ class AggregatesController(rest.RestController):
                         resources, references, body["operations"], start, stop,
                         granularity, needed_overlap, fill, details=details)
                 })
+            LOG.error("KAG: results %s", results)
             return results
 
         else:
@@ -263,6 +276,7 @@ class AggregatesController(rest.RestController):
 
             metrics = pecan.request.indexer.list_metrics(
                 attribute_filter={"in": {"id": metric_ids}})
+            LOG.error("KAG: metrics = %s", metrics)
             missing_metric_ids = (set(metric_ids)
                                   - set(six.text_type(m.id) for m in metrics))
             if missing_metric_ids:
@@ -289,6 +303,7 @@ class AggregatesController(rest.RestController):
             if details:
                 response["references"] = metrics
 
+            LOG.error("KAG: response = %s", response)
             return response
 
     @staticmethod

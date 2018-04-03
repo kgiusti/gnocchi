@@ -51,6 +51,8 @@ try:
 except ImportError:
     PROMETHEUS_SUPPORTED = False
 
+import daiquiri
+LOG = daiquiri.getLogger(__name__)
 
 ATTRGETTER_GRANULARITY = operator.attrgetter("granularity")
 
@@ -150,6 +152,7 @@ def deserialize(expected_content_types=None):
         params = json.load(pecan.request.body_file)
     except Exception as e:
         abort(400, "Unable to decode body: " + six.text_type(e))
+    LOG.error("KAG: deserialize = %s", params)
     return params
 
 
@@ -272,6 +275,7 @@ class ArchivePolicyController(rest.RestController):
         ap = pecan.request.indexer.get_archive_policy(self.archive_policy)
         if ap:
             enforce("get archive policy", ap)
+            LOG.error("KAG: ap = %s", ap)
             return ap
         abort(404, six.text_type(
             indexer.NoSuchArchivePolicy(self.archive_policy)))
@@ -472,6 +476,7 @@ class MetricController(rest.RestController):
     @pecan.expose('json')
     def get_all(self):
         self.enforce_metric("get metric")
+        LOG.error("KAG: get_all %s", self.metric)
         return self.metric
 
     @pecan.expose('json')
@@ -480,6 +485,7 @@ class MetricController(rest.RestController):
         measures = deserialize_and_validate(MeasuresListSchema,
                                             detailed_exc=True)
         if measures:
+            LOG.error("KAG: post measures %s", measures)
             pecan.request.incoming.add_measures(self.metric.id, measures)
         pecan.response.status = 202
 
@@ -536,8 +542,10 @@ class MetricController(rest.RestController):
                 abort(503, 'Unable to refresh metric: %s. Metric is locked. '
                       'Please try again.' % self.metric.id)
         try:
-            return pecan.request.storage.get_measures(
+            poop = pecan.request.storage.get_measures(
                 self.metric, aggregations, start, stop, resample)[aggregation]
+            LOG.error("KAG: something something dark side: %s", poop)
+            return poop
         except storage.AggregationDoesNotExist as e:
             abort(404, six.text_type(e))
         except storage.MetricDoesNotExist:
@@ -566,6 +574,7 @@ class MetricsController(rest.RestController):
             attribute_filter={"=": {"id": metric_id}}, details=True)
         if not metrics:
             abort(404, six.text_type(indexer.NoSuchMetric(id)))
+        LOG.error("KAG hey %s", metrics[0])
         return MetricController(metrics[0]), remainder
 
     # NOTE(jd) Define this method as it was a voluptuous schema – it's just a
@@ -651,6 +660,7 @@ class MetricsController(rest.RestController):
             abort(400, e)
         set_resp_location_hdr("/metric/" + str(m.id))
         pecan.response.status = 201
+        LOG.error("KAG create %s", m)
         return m
 
     MetricListSchema = voluptuous.Schema({
@@ -706,6 +716,7 @@ class MetricsController(rest.RestController):
                 **pagination_opts)
             if metrics and len(metrics) >= pagination_opts['limit']:
                 set_resp_link_hdr(str(metrics[-1].id), kwargs, pagination_opts)
+            LOG.error("KAG yo %s", metrics)
             return metrics
         except indexer.InvalidPagination as e:
             abort(400, six.text_type(e))
@@ -743,6 +754,7 @@ class NamedMetricController(rest.RestController):
                 {"=": {"resource_id": self.resource_id}},
             ]})
         if m:
+            LOG.error("KAG: doah %s", m)
             return MetricController(m[0]), remainder
 
         resource = pecan.request.indexer.get_resource(self.resource_type,
@@ -776,6 +788,7 @@ class NamedMetricController(rest.RestController):
         except indexer.NoSuchResource as e:
             abort(404, six.text_type(e))
 
+        LOG.error("KAG: eynd %s", r.metrics)
         return r.metrics
 
     @pecan.expose('json')
@@ -785,8 +798,10 @@ class NamedMetricController(rest.RestController):
         if not resource:
             abort(404, six.text_type(indexer.NoSuchResource(self.resource_id)))
         enforce("get resource", resource)
-        return pecan.request.indexer.list_metrics(
+        poop = pecan.request.indexer.list_metrics(
             attribute_filter={"=": {"resource_id": self.resource_id}})
+        LOG.error("KAG: poop %s", poop)
+        return poop
 
 
 class ResourceHistoryController(rest.RestController):
@@ -818,6 +833,7 @@ class ResourceHistoryController(rest.RestController):
             if resources and len(resources) >= pagination_opts['limit']:
                 marker = "%s@%s" % (resources[-1].id, resources[-1].revision)
                 set_resp_link_hdr(marker, kwargs, pagination_opts)
+            LOG.error("KAG RESK %s", resources)
             return resources
         except indexer.IndexerException as e:
             abort(400, six.text_type(e))
@@ -878,6 +894,7 @@ class ResourceTypeController(rest.RestController):
         except indexer.NoSuchResourceType as e:
             abort(404, six.text_type(e))
         enforce("get resource type", rt)
+        LOG.error("KAG: rt %s", rt)
         return rt
 
     @pecan.expose('json')
@@ -973,13 +990,16 @@ class ResourceTypesController(rest.RestController):
             abort(409, six.text_type(e))
         set_resp_location_hdr("/resource_type/" + rt.name)
         pecan.response.status = 201
+        LOG.error("KAG: rt %s", rt)
         return rt
 
     @pecan.expose('json')
     def get_all(self, **kwargs):
         enforce("list resource type", {})
         try:
-            return pecan.request.indexer.list_resource_types()
+            poop = pecan.request.indexer.list_resource_types()
+            LOG.error("KAG: poop %s", poop)
+            return poop
         except indexer.IndexerException as e:
             abort(400, six.text_type(e))
 
@@ -1018,6 +1038,7 @@ class ResourceController(rest.RestController):
             enforce("get resource", resource)
             etag_precondition_check(resource)
             etag_set_headers(resource)
+            LOG.error("KAG: poop %s", resource)
             return resource
         abort(404, six.text_type(indexer.NoSuchResource(self.id)))
 
@@ -1036,6 +1057,7 @@ class ResourceController(rest.RestController):
 
         if len(body) == 0:
             etag_set_headers(resource)
+            LOG.error("KAG: poop %s", resource)
             return resource
 
         for k, v in six.iteritems(body):
@@ -1046,6 +1068,7 @@ class ResourceController(rest.RestController):
             if 'metrics' not in body:
                 # No need to go further, we assume the db resource
                 # doesn't change between the get and update
+                LOG.error("KAG: poop %s", resource)
                 return resource
             create_revision = False
 
@@ -1062,6 +1085,7 @@ class ResourceController(rest.RestController):
         except indexer.NoSuchResource as e:
             abort(404, six.text_type(e))
         etag_set_headers(resource)
+        LOG.error("KAG: poop %s", resource)
         return resource
 
     @pecan.expose()
@@ -1140,6 +1164,7 @@ class ResourcesController(rest.RestController):
                               + six.text_type(resource.id))
         etag_set_headers(resource)
         pecan.response.status = 201
+        LOG.error("KAG: poop %s", resource)
         return resource
 
     @pecan.expose('json')
@@ -1169,6 +1194,7 @@ class ResourcesController(rest.RestController):
                 else:
                     marker = str(resources[-1].id)
                 set_resp_link_hdr(marker, kwargs, pagination_opts)
+            LOG.error("KAG: poop %s", resources)
             return [r.jsonify(json_attrs) for r in resources]
         except indexer.IndexerException as e:
             abort(400, six.text_type(e))
@@ -1209,10 +1235,12 @@ class ResourcesController(rest.RestController):
 class ResourcesByTypeController(rest.RestController):
     @pecan.expose('json')
     def get_all(self):
-        return dict(
+        poop = dict(
             (rt.name,
              pecan.request.application_url + '/resource/' + rt.name)
             for rt in pecan.request.indexer.list_resource_types())
+        LOG.error("KAG: poop %s", poop)
+        return poop
 
     @pecan.expose()
     def _lookup(self, resource_type, *remainder):
@@ -1302,6 +1330,7 @@ class QueryStringSearchAttrFilter(object):
 
     @classmethod
     def parse(cls, query):
+        LOG.error("KAG: parse %s", query)
         attr_filter = cls._parse(query)
         return validate(ResourceSearchSchema, attr_filter, required=True)
 
@@ -1497,6 +1526,7 @@ class SearchMetricController(rest.RestController):
             abort(400, "No query specified in body")
 
         query = deserialize_and_validate(self.MetricSearchSchema)
+        LOG.error("KAG: poop %s", query)
 
         if start is not None:
             try:
@@ -1539,6 +1569,7 @@ class SearchMetricController(rest.RestController):
         except storage.AggregationDoesNotExist as e:
             abort(400, e)
 
+        LOG.error("KAG: poop %s", results)
         return results
 
 
@@ -1612,6 +1643,7 @@ class ResourcesMetricsMeasuresBatchController(rest.RestController):
                                 unit=metric.get('unit'),
                                 archive_policy_name=metric[
                                     'archive_policy_name'])
+                            LOG.error("KAG: %s", m)
                         except indexer.NamedMetricAlreadyExists as e:
                             already_exists_names.append(e.metric_name)
                         except indexer.NoSuchResource:
@@ -1654,10 +1686,11 @@ class ResourcesMetricsMeasuresBatchController(rest.RestController):
         for metric in known_metrics:
             enforce("post measures", metric)
 
-        pecan.request.incoming.add_measures_batch(
-            dict((metric.id,
-                 body_by_rid[metric.resource_id][metric.name]["measures"])
-                 for metric in known_metrics))
+        blah = dict((metric.id,
+                     body_by_rid[metric.resource_id][metric.name]["measures"])
+                    for metric in known_metrics)
+        LOG.error("KAG: %s", blah)
+        pecan.request.incoming.add_measures_batch(blah)
 
         pecan.response.status = 202
 
@@ -1687,9 +1720,10 @@ class MetricsMeasuresBatchController(rest.RestController):
         for metric in metrics:
             enforce("post measures", metric)
 
-        pecan.request.incoming.add_measures_batch(
-            dict((metric.id, body[metric.id]) for metric in
-                 metrics))
+        poop = dict((metric.id, body[metric.id]) for metric in
+                    metrics)
+        LOG.error("KAG: %s", poop)
+        pecan.request.incoming.add_measures_batch(poop)
 
         pecan.response.status = 202
 
@@ -1712,7 +1746,7 @@ class AggregationResourceController(rest.RestController):
         # First, set groupby in the right format: a sorted list of unique
         # strings.
         groupby = sorted(set(arg_to_list(groupby)))
-
+        LOG.error("KAG: huh")
         # NOTE(jd) Sort by groupby so we are sure we do not return multiple
         # groups when using itertools.groupby later.
         try:
@@ -1731,6 +1765,8 @@ class AggregationResourceController(rest.RestController):
             metrics = list(filter(None,
                                   (r.get_metric(self.metric_name)
                                    for r in resources)))
+            LOG.error("KAG: %s", metrics)
+
             return AggregationController.get_cross_metric_measures_from_objs(
                 metrics, start, stop, aggregation, reaggregation,
                 granularity, needed_overlap, fill, refresh, resample)
@@ -1749,7 +1785,7 @@ class AggregationResourceController(rest.RestController):
                     metrics, start, stop, aggregation, reaggregation,
                     granularity, needed_overlap, fill, refresh, resample)
             })
-
+        LOG.error("KAG: %s", results)
         return results
 
 FillSchema = voluptuous.Schema(
@@ -1810,6 +1846,7 @@ class AggregationController(rest.RestController):
     @pecan.expose()
     def _lookup(self, object_type, resource_type, key, metric_name,
                 *remainder):
+        LOG.error("KAG: %s", metric_name)
         if object_type != "resource" or key != "metric":
             # NOTE(sileht): we want the raw 404 message here
             # so use directly pecan
@@ -1818,8 +1855,10 @@ class AggregationController(rest.RestController):
             pecan.request.indexer.get_resource_type(resource_type)
         except indexer.NoSuchResourceType as e:
             abort(404, six.text_type(e))
-        return AggregationResourceController(resource_type,
-                                             metric_name), remainder
+        poo = AggregationResourceController(resource_type,
+                                            metric_name), remainder
+        LOG.error("KAG: %s", poo)
+        return poo
 
     @staticmethod
     def get_cross_metric_measures_from_objs(metrics, start=None, stop=None,
@@ -1956,6 +1995,7 @@ class AggregationController(rest.RestController):
             metric_ids = deserialize_and_validate(self.MetricIDsSchema)
 
         metric_ids = [six.text_type(m) for m in metric_ids]
+        LOG.error("KAG: %s", metric_ids)
         # Check RBAC policy
         metrics = pecan.request.indexer.list_metrics(
             attribute_filter={"in": {"id": metric_ids}})
@@ -2074,6 +2114,7 @@ def get_or_create_resource_and_metrics(
             raise tenacity.TryAgain
 
     if r:
+        LOG.error("KAG: %s", r)
         enforce("update resource", r)
         exists_metric_names = [m.name for m in r.metrics]
         metrics = MetricsSchema(dict(
@@ -2105,6 +2146,7 @@ def get_or_create_resource_and_metrics(
         kwargs['metrics'] = metrics
         kwargs['original_resource_id'] = original_resource_id
 
+        LOG.error("KAG: %s", metrics)
         try:
             return pecan.request.indexer.create_resource(
                 resource_type, rid, creator, **kwargs

@@ -53,6 +53,7 @@ class SwiftStorage(incoming.IncomingDriver):
             self.swift.delete_container(str(sack))
 
     def _store_new_measures(self, metric_id, data):
+        LOG.error("KAG: %s:%s", metric_id, data)
         now = datetime.datetime.utcnow().strftime("_%Y%m%d_%H:%M:%S")
         self.swift.put_object(
             str(self.sack_for_metric(metric_id)),
@@ -95,6 +96,7 @@ class SwiftStorage(incoming.IncomingDriver):
 
     @contextlib.contextmanager
     def process_measure_for_metrics(self, metric_ids):
+        LOG.error("KAG: %s", metric_ids)
         measures = {}
         all_files = defaultdict(list)
         for metric_id in metric_ids:
@@ -135,7 +137,7 @@ class SwiftStorage(incoming.IncomingDriver):
                     self.swift.get_object(sack_name, f['name'])[1],
                 )
             ])
-
+        LOG.error("KAG: %s", measures)
         yield measures
 
         swift.bulk_delete(self.swift, sack_name, files)

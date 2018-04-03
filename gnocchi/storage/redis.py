@@ -20,6 +20,8 @@ from gnocchi.common import redis
 from gnocchi import storage
 from gnocchi import utils
 
+import daiquiri
+LOG = daiquiri.getLogger(__name__)
 
 class RedisStorage(storage.StorageDriver):
     WRITE_FULL = True
@@ -72,6 +74,7 @@ return ids
         return path + '_v%s' % version if version else path
 
     def _store_unaggregated_timeseries(self, metrics_and_data, version=3):
+        LOG.error("KAG %s", metrics_and_data)
         pipe = self._client.pipeline(transaction=False)
         unagg_key = self._unaggregated_field(version)
         for metric, data in metrics_and_data:
@@ -79,6 +82,7 @@ return ids
         pipe.execute()
 
     def _get_or_create_unaggregated_timeseries(self, metrics, version=3):
+        LOG.error("KAG %s", metrics)
         pipe = self._client.pipeline(transaction=False)
         for metric in metrics:
             metric_key = self._metric_key(metric)
@@ -96,6 +100,7 @@ return ids
         return ts
 
     def _list_split_keys(self, metric, aggregations, version=3):
+        LOG.error("KAG %s", metric)
         key = self._metric_key(metric)
         pipe = self._client.pipeline(transaction=False)
         pipe.exists(key)
@@ -152,6 +157,7 @@ return ids
         self._client.delete(self._metric_key(metric))
 
     def _get_measures(self, metric, keys_and_aggregations, version=3):
+        LOG.error("KAG %s", metric)
         if not keys_and_aggregations:
             return []
         return self._client.hmget(
