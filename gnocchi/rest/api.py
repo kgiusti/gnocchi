@@ -1643,7 +1643,7 @@ class ResourcesMetricsMeasuresBatchController(rest.RestController):
                                 unit=metric.get('unit'),
                                 archive_policy_name=metric[
                                     'archive_policy_name'])
-                            LOG.error("KAG: %s", m)
+                            LOG.error("KAG: 1646:%s", m)
                         except indexer.NamedMetricAlreadyExists as e:
                             already_exists_names.append(e.metric_name)
                         except indexer.NoSuchResource:
@@ -1689,7 +1689,7 @@ class ResourcesMetricsMeasuresBatchController(rest.RestController):
         blah = dict((metric.id,
                      body_by_rid[metric.resource_id][metric.name]["measures"])
                     for metric in known_metrics)
-        LOG.error("KAG: %s", blah)
+        LOG.error("KAG: 1692 %s", blah)
         pecan.request.incoming.add_measures_batch(blah)
 
         pecan.response.status = 202
@@ -1722,7 +1722,7 @@ class MetricsMeasuresBatchController(rest.RestController):
 
         poop = dict((metric.id, body[metric.id]) for metric in
                     metrics)
-        LOG.error("KAG: %s", poop)
+        LOG.error("KAG: 1725 %s", poop)
         pecan.request.incoming.add_measures_batch(poop)
 
         pecan.response.status = 202
@@ -1765,7 +1765,7 @@ class AggregationResourceController(rest.RestController):
             metrics = list(filter(None,
                                   (r.get_metric(self.metric_name)
                                    for r in resources)))
-            LOG.error("KAG: %s", metrics)
+            LOG.error("KAG: 1768 %s", metrics)
 
             return AggregationController.get_cross_metric_measures_from_objs(
                 metrics, start, stop, aggregation, reaggregation,
@@ -1785,7 +1785,7 @@ class AggregationResourceController(rest.RestController):
                     metrics, start, stop, aggregation, reaggregation,
                     granularity, needed_overlap, fill, refresh, resample)
             })
-        LOG.error("KAG: %s", results)
+        LOG.error("KAG: 1788 %s", results)
         return results
 
 FillSchema = voluptuous.Schema(
@@ -1846,7 +1846,7 @@ class AggregationController(rest.RestController):
     @pecan.expose()
     def _lookup(self, object_type, resource_type, key, metric_name,
                 *remainder):
-        LOG.error("KAG: %s", metric_name)
+        LOG.error("KAG: 1849 %s", metric_name)
         if object_type != "resource" or key != "metric":
             # NOTE(sileht): we want the raw 404 message here
             # so use directly pecan
@@ -1857,7 +1857,7 @@ class AggregationController(rest.RestController):
             abort(404, six.text_type(e))
         poo = AggregationResourceController(resource_type,
                                             metric_name), remainder
-        LOG.error("KAG: %s", poo)
+        LOG.error("KAG: 1860 %s", poo)
         return poo
 
     @staticmethod
@@ -1995,7 +1995,7 @@ class AggregationController(rest.RestController):
             metric_ids = deserialize_and_validate(self.MetricIDsSchema)
 
         metric_ids = [six.text_type(m) for m in metric_ids]
-        LOG.error("KAG: %s", metric_ids)
+        LOG.error("KAG: 1998 %s", metric_ids)
         # Check RBAC policy
         metrics = pecan.request.indexer.list_metrics(
             attribute_filter={"in": {"id": metric_ids}})
@@ -2114,7 +2114,7 @@ def get_or_create_resource_and_metrics(
             raise tenacity.TryAgain
 
     if r:
-        LOG.error("KAG: %s", r)
+        LOG.error("KAG: 2117 %s", r)
         enforce("update resource", r)
         exists_metric_names = [m.name for m in r.metrics]
         metrics = MetricsSchema(dict(
@@ -2146,7 +2146,7 @@ def get_or_create_resource_and_metrics(
         kwargs['metrics'] = metrics
         kwargs['original_resource_id'] = original_resource_id
 
-        LOG.error("KAG: %s", metrics)
+        LOG.error("KAG: 2149 %s", metrics)
         try:
             return pecan.request.indexer.create_resource(
                 resource_type, rid, creator, **kwargs
