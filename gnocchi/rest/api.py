@@ -1746,7 +1746,9 @@ class AggregationResourceController(rest.RestController):
         # First, set groupby in the right format: a sorted list of unique
         # strings.
         groupby = sorted(set(arg_to_list(groupby)))
-        LOG.error("KAG: huh")
+        LOG.error("KAG: post metric name %s", self.metric_name)
+        LOG.error("KAG: group-by %s", groupby)
+        LOG.error("KAG: filter %s", kwargs.get("filter"))
         # NOTE(jd) Sort by groupby so we are sure we do not return multiple
         # groups when using itertools.groupby later.
         try:
@@ -1760,6 +1762,8 @@ class AggregationResourceController(rest.RestController):
 
         if resources is None:
             return []
+
+        LOG.error("KAG: resources = %s", resources)
 
         if not groupby:
             metrics = list(filter(None,
@@ -1779,6 +1783,7 @@ class AggregationResourceController(rest.RestController):
             metrics = list(filter(None,
                                   (r.get_metric(self.metric_name)
                                    for r in resources)))
+            LOG.error("KAG: key=%s, resources=%s", key, resources)
             results.append({
                 "group": dict(key),
                 "measures": AggregationController.get_cross_metric_measures_from_objs(  # noqa
