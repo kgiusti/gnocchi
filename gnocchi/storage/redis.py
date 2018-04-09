@@ -79,7 +79,8 @@ return ids
         unagg_key = self._unaggregated_field(version)
         for metric, data in metrics_and_data:
             pipe.hset(self._metric_key(metric), unagg_key, data)
-        pipe.execute()
+        results = pipe.execute()
+        LOG.error("KAG: results from store_unaggregated %s", results)
 
     def _get_or_create_unaggregated_timeseries(self, metrics, version=3):
         LOG.error("KAG: 85  %s", metrics)
@@ -97,6 +98,7 @@ return ids
             for metric, (created, data)
             in six.moves.zip(metrics, utils.grouper(pipe.execute(), 2))
         }
+        LOG.error("KAG: returning get or create: %s", ts)
         return ts
 
     def _list_split_keys(self, metric, aggregations, version=3):
@@ -112,6 +114,7 @@ return ids
                 client=pipe,
             )
         results = pipe.execute()
+        LOG.error("KAG: list_split_keys results %s", results)
         metric_exists_p = results.pop(0)
         if not metric_exists_p:
             raise storage.MetricDoesNotExist(metric)
@@ -129,6 +132,7 @@ return ids
                 for timestamp, granularity
                 in six.moves.zip(timestamps, granularities)
             }
+        LOG.error("KAG: list_split_keys returns %s", keys)
         return keys
 
     def _delete_metric_splits(self, metrics_keys_aggregations, version=3):
@@ -159,8 +163,11 @@ return ids
     def _get_measures(self, metric, keys_and_aggregations, version=3):
         LOG.error("KAG: 160  %s", metric)
         if not keys_and_aggregations:
+            LOG.error("KAG: 165 I've got zilch")
             return []
-        return self._client.hmget(
+        yada = self._client.hmget(
             self._metric_key(metric),
             [self._aggregated_field_for_split(aggregation.method, key, version)
              for key, aggregation in keys_and_aggregations])
+        LOG.error("KAG: _get_measures: %s", yada)
+        return yada

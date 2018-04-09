@@ -1399,10 +1399,13 @@ class SearchResourceTypeController(rest.RestController):
         self._resource_type = resource_type
 
     def _search(self, **kwargs):
+        LOG.error("KAG: searching for %s", str(kwargs))
         if pecan.request.body:
             attr_filter = deserialize_and_validate(ResourceSearchSchema)
+            LOG.error("KAG: attr_filter 1: %s", attr_filter)
         elif kwargs.get("filter"):
             attr_filter = QueryStringSearchAttrFilter.parse(kwargs["filter"])
+            LOG.error("KAG: attr_filter 2: %s", attr_filter)
         else:
             attr_filter = None
 
@@ -1422,12 +1425,15 @@ class SearchResourceTypeController(rest.RestController):
             else:
                 attr_filter = policy_filter
 
+        LOG.error("KAG: deets = %s, %s, %s", (details, history, pagination_opts))
+
         resources = pecan.request.indexer.list_resources(
             self._resource_type,
             attribute_filter=attr_filter,
             details=details,
             history=history,
             **pagination_opts)
+        LOG.error("KAG: raw resources = %s", resources)
         if resources and len(resources) >= pagination_opts['limit']:
             if history:
                 marker = "%s@%s" % (resources[-1].id,
@@ -1756,8 +1762,10 @@ class AggregationResourceController(rest.RestController):
                 self.resource_type)._search(sort=groupby,
                                             filter=kwargs.get("filter"))
         except indexer.InvalidPagination:
+            LOG.error("KAG: InvalidPagination")
             abort(400, "Invalid groupby attribute")
         except indexer.IndexerException as e:
+            LOG.error("KAG: IndexerException %s", str(e))
             abort(400, six.text_type(e))
 
         if resources is None:
@@ -1855,10 +1863,12 @@ class AggregationController(rest.RestController):
         if object_type != "resource" or key != "metric":
             # NOTE(sileht): we want the raw 404 message here
             # so use directly pecan
+            LOG.error("KAG: 1858")
             pecan.abort(404)
         try:
             pecan.request.indexer.get_resource_type(resource_type)
         except indexer.NoSuchResourceType as e:
+            LOG.error("KAG: 1862")
             abort(404, six.text_type(e))
         poo = AggregationResourceController(resource_type,
                                             metric_name), remainder

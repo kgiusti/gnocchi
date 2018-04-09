@@ -317,6 +317,7 @@ class StorageDriver(object):
                           metric.id, aggregation.method, key.sampling, key)
                 ts = carbonara.AggregatedTimeSerie(aggregation)
             results.append(ts)
+        LOG.error("KAG: _get_splits_and_unserialize %s", results)
         return results
 
     def _get_measures_timeserie(self, metric, aggregation, keys,
