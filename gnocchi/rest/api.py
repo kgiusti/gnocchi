@@ -1425,7 +1425,7 @@ class SearchResourceTypeController(rest.RestController):
             else:
                 attr_filter = policy_filter
 
-        LOG.error("KAG: deets = %s, %s, %s", (details, history, pagination_opts))
+        LOG.error("KAG: deets = %s, %s, %s", details, history, pagination_opts)
 
         resources = pecan.request.indexer.list_resources(
             self._resource_type,
