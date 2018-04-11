@@ -20,6 +20,9 @@ from gnocchi.common import redis
 from gnocchi import storage
 from gnocchi import utils
 
+import daiquiri
+LOG = daiquiri.getLogger(__name__)
+
 
 class RedisStorage(storage.StorageDriver):
     WRITE_FULL = True
@@ -72,6 +75,7 @@ return ids
         return path + '_v%s' % version if version else path
 
     def _store_unaggregated_timeseries(self, metrics_and_data, version=3):
+        LOG.error("KAG: 77  %s", metrics_and_data)
         pipe = self._client.pipeline(transaction=False)
         unagg_key = self._unaggregated_field(version)
         for metric, data in metrics_and_data:
@@ -79,6 +83,7 @@ return ids
         pipe.execute()
 
     def _get_or_create_unaggregated_timeseries(self, metrics, version=3):
+        LOG.error("KAG: 85  %s", metrics)
         pipe = self._client.pipeline(transaction=False)
         for metric in metrics:
             metric_key = self._metric_key(metric)
@@ -96,6 +101,7 @@ return ids
         return ts
 
     def _list_split_keys(self, metric, aggregations, version=3):
+        LOG.error("KAG: 103 %s", metric)
         key = self._metric_key(metric)
         pipe = self._client.pipeline(transaction=False)
         pipe.exists(key)
@@ -127,6 +133,7 @@ return ids
         return keys
 
     def _delete_metric_splits(self, metrics_keys_aggregations, version=3):
+        LOG.error("KAG: delete metric split: %s", metrics_keys_aggregations)
         pipe = self._client.pipeline(transaction=False)
         for metric, keys_and_aggregations in six.iteritems(
                 metrics_keys_aggregations):
@@ -138,6 +145,8 @@ return ids
 
     def _store_metric_splits(self, metrics_keys_aggregations_data_offset,
                              version=3):
+        LOG.error("KAG: store metric split: %s",
+                  metrics_keys_aggregations_data_offset)
         pipe = self._client.pipeline(transaction=False)
         for metric, keys_aggs_data_offset in six.iteritems(
                 metrics_keys_aggregations_data_offset):
@@ -149,12 +158,17 @@ return ids
         pipe.execute()
 
     def _delete_metric(self, metric):
+        LOG.error("KAG: delete metric: %s", metric)
         self._client.delete(self._metric_key(metric))
 
     def _get_measures(self, metric, keys_and_aggregations, version=3):
+        LOG.error("KAG: get measures  %s", metric)
         if not keys_and_aggregations:
+            LOG.error("KAG: I've got zilch")
             return []
-        return self._client.hmget(
+        yada = self._client.hmget(
             self._metric_key(metric),
             [self._aggregated_field_for_split(aggregation.method, key, version)
              for key, aggregation in keys_and_aggregations])
+        LOG.error("KAG: _get_measures: %s", yada)
+        return yada

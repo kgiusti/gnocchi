@@ -51,6 +51,8 @@ try:
 except ImportError:
     PROMETHEUS_SUPPORTED = False
 
+import daiquiri
+LOG = daiquiri.getLogger(__name__)
 
 ATTRGETTER_GRANULARITY = operator.attrgetter("granularity")
 
@@ -150,6 +152,7 @@ def deserialize(expected_content_types=None):
         params = json.load(pecan.request.body_file)
     except Exception as e:
         abort(400, "Unable to decode body: " + six.text_type(e))
+    LOG.error("KAG: deserialize = %s", params)
     return params
 
 
@@ -537,6 +540,7 @@ class MetricsController(rest.RestController):
             attribute_filter={"=": {"id": metric_id}}, details=True)
         if not metrics:
             abort(404, six.text_type(indexer.NoSuchMetric(id)))
+        LOG.error("KAG hey %s", metrics[0])
         return MetricController(metrics[0]), remainder
 
     # NOTE(jd) Define this method as it was a voluptuous schema – it's just a
@@ -622,6 +626,7 @@ class MetricsController(rest.RestController):
             abort(400, e)
         set_resp_location_hdr("/metric/" + str(m.id))
         pecan.response.status = 201
+        LOG.error("KAG create %s", m)
         return m
 
     MetricListSchema = voluptuous.Schema({
@@ -1625,6 +1630,8 @@ class ResourcesMetricsMeasuresBatchController(rest.RestController):
         for metric in known_metrics:
             enforce("post measures", metric)
 
+        LOG.error("KAG: pecan add measures: %s",
+                  [metric.name for metric in known_metrics])
         pecan.request.incoming.add_measures_batch(
             dict((metric.id,
                  body_by_rid[metric.resource_id][metric.name]["measures"])
@@ -1683,7 +1690,9 @@ class AggregationResourceController(rest.RestController):
         # First, set groupby in the right format: a sorted list of unique
         # strings.
         groupby = sorted(set(arg_to_list(groupby)))
-
+        LOG.error("KAG: post metric name %s", self.metric_name)
+        LOG.error("KAG: group-by %s", groupby)
+        LOG.error("KAG: filter %s", kwargs.get("filter"))
         # NOTE(jd) Sort by groupby so we are sure we do not return multiple
         # groups when using itertools.groupby later.
         try:
@@ -1697,6 +1706,8 @@ class AggregationResourceController(rest.RestController):
 
         if resources is None:
             return []
+
+        LOG.error("KAG: resources = %s", resources)
 
         if not groupby:
             metrics = list(filter(None,
@@ -1781,6 +1792,7 @@ class AggregationController(rest.RestController):
     @pecan.expose()
     def _lookup(self, object_type, resource_type, key, metric_name,
                 *remainder):
+        LOG.error("KAG: _lookup %s", metric_name)
         if object_type != "resource" or key != "metric":
             # NOTE(sileht): we want the raw 404 message here
             # so use directly pecan
@@ -1789,8 +1801,10 @@ class AggregationController(rest.RestController):
             pecan.request.indexer.get_resource_type(resource_type)
         except indexer.NoSuchResourceType as e:
             abort(404, six.text_type(e))
-        return AggregationResourceController(resource_type,
-                                             metric_name), remainder
+        poop = AggregationResourceController(resource_type,
+                                             metric_name)
+        LOG.error("KAG AggResCont %s", poop)
+        return poop, remainder
 
     @staticmethod
     def get_cross_metric_measures_from_objs(metrics, start=None, stop=None,
