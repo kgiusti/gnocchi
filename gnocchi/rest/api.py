@@ -1344,23 +1344,29 @@ def _ResourceSearchSchema():
 class SearchResourceTypeController(rest.RestController):
     def __init__(self, resource_type):
         self._resource_type = resource_type
+        LOG.error("KAG: SRTC type=%s", resource_type)
 
     def _search(self, **kwargs):
         if pecan.request.body:
             attr_filter = deserialize_and_validate(ResourceSearchSchema)
+            LOG.error("KAG: SRTC pecan req body=%s", attr_filter)
         elif kwargs.get("filter"):
             attr_filter = QueryStringSearchAttrFilter.parse(kwargs["filter"])
+            LOG.error("KAG: SRTC filter=%s", attr_filter)
         else:
             attr_filter = None
+            LOG.error("KAG: SRTC no filter")
 
         details = get_bool_param('details', kwargs)
         history = get_bool_param('history', kwargs)
         pagination_opts = get_pagination_options(
             kwargs, RESOURCE_DEFAULT_PAGINATION)
 
+        LOG.error("KAG: SRTC get_res_po_filter...%s", pecan.request)
         policy_filter = pecan.request.auth_helper.get_resource_policy_filter(
             pecan.request, "search resource", self._resource_type)
         if policy_filter:
+            LOG.error("KAG: SRTC policy filter=%s", policy_filter)
             if attr_filter:
                 attr_filter = {"and": [
                     policy_filter,
@@ -1369,12 +1375,19 @@ class SearchResourceTypeController(rest.RestController):
             else:
                 attr_filter = policy_filter
 
+
+        LOG.error("KAG: SRTC get resources filter=%s deets=%s hist=%s pg=%s",
+                  attr_filter,
+                  str(details),
+                  str(history),
+                  str(pagination_opts))
         resources = pecan.request.indexer.list_resources(
             self._resource_type,
             attribute_filter=attr_filter,
             details=details,
             history=history,
             **pagination_opts)
+        LOG.error("KAG: SRTC got %s", str(resources))
         if resources and len(resources) >= pagination_opts['limit']:
             if history:
                 marker = "%s@%s" % (resources[-1].id,
@@ -1382,6 +1395,7 @@ class SearchResourceTypeController(rest.RestController):
             else:
                 marker = str(resources[-1].id)
             set_resp_link_hdr(marker, kwargs, pagination_opts)
+        LOG.error("KAG: SRTC return %s", str(resources))
         return resources
 
     @pecan.expose('json')
